@@ -2,8 +2,8 @@ import os
 import requests
 import asyncio
 import edge_tts
-import google.generativeai as genai
-from moviepy.editor import *
+from google import genai
+from moviepy import VideoFileClip, AudioFileClip, concatenate_videoclips
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -17,23 +17,19 @@ YOUTUBE_REFRESH_TOKEN = os.environ['YOUTUBE_REFRESH_TOKEN']
 
 # Step 1 - Get trending AI topic
 def get_trending_topic():
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content(
-        "Give me ONE trending AI or technology topic that is popular in the USA right now in 2026. "
-        "Return ONLY the topic name, nothing else. Example: ChatGPT Voice Mode"
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents="Give me ONE trending AI or technology topic popular in the USA right now in 2026. Return ONLY the topic name, nothing else. Example: ChatGPT Voice Mode"
     )
     return response.text.strip()
 
 # Step 2 - Generate script
 def generate_script(topic):
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content(
-        f"You are a YouTube scriptwriter for a faceless AI & Technology tutorials channel called Visiq AI, targeting a US audience aged 18-35. "
-        f"Write a 3-minute script about: {topic}. "
-        f"Structure: Hook (10 seconds shocking fact), Problem (30 seconds), Tutorial (2 minutes step by step), CTA (20 seconds subscribe). "
-        f"Keep language simple and conversational. Return ONLY the script text."
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=f"You are a YouTube scriptwriter for a faceless AI & Technology tutorials channel called Visiq AI, targeting a US audience aged 18-35. Write a 3-minute script about: {topic}. Structure: Hook (10 seconds shocking fact), Problem (30 seconds), Tutorial (2 minutes step by step), CTA (20 seconds subscribe). Keep language simple and conversational. Return ONLY the script text."
     )
     return response.text.strip()
 
@@ -67,24 +63,21 @@ def assemble_video(footage_files, audio_file, output_file):
     clips = []
     duration_per_clip = total_duration / len(footage_files)
     for footage in footage_files:
-        clip = VideoFileClip(footage).subclip(0, min(duration_per_clip, VideoFileClip(footage).duration))
-        clip = clip.resize((1920, 1080))
+        clip = VideoFileClip(footage)
+        clip = clip.subclipped(0, min(duration_per_clip, clip.duration))
+        clip = clip.resized((1920, 1080))
         clips.append(clip)
     final_video = concatenate_videoclips(clips, method="compose")
-    final_video = final_video.subclip(0, total_duration)
-    final_video = final_video.set_audio(audio)
+    final_video = final_video.subclipped(0, total_duration)
+    final_video = final_video.with_audio(audio)
     final_video.write_videofile(output_file, fps=24, codec='libx264', audio_codec='aac')
 
-# Step 6 - Generate title and description
+# Step 6 - Generate metadata
 def generate_metadata(topic):
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content(
-        f"Generate YouTube metadata for a video about {topic} for the channel Visiq AI. "
-        f"Return in this exact format:\n"
-        f"TITLE: (catchy title under 60 chars)\n"
-        f"DESCRIPTION: (150 word description with keywords)\n"
-        f"TAGS: (10 comma separated tags)"
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=f"Generate YouTube metadata for a video about {topic} for the channel Visiq AI. Return in this exact format:\nTITLE: (catchy title under 60 chars)\nDESCRIPTION: (150 word description with keywords)\nTAGS: (10 comma separated tags)"
     )
     lines = response.text.strip().split('\n')
     title = lines[0].replace('TITLE:', '').strip()
@@ -124,31 +117,31 @@ def upload_to_youtube(video_file, title, description, tags):
 # Main pipeline
 def main():
     print("Starting Visiq AI automation...")
-    
+
     print("Step 1: Getting trending topic...")
     topic = get_trending_topic()
     print(f"Topic: {topic}")
-    
+
     print("Step 2: Generating script...")
     script = generate_script(topic)
     print("Script generated!")
-    
+
     print("Step 3: Generating voiceover...")
     asyncio.run(generate_voiceover(script, "voiceover.mp3"))
     print("Voiceover done!")
-    
+
     print("Step 4: Getting stock footage...")
     footage_files = get_stock_footage(topic)
     print(f"Downloaded {len(footage_files)} footage clips!")
-    
+
     print("Step 5: Assembling video...")
     assemble_video(footage_files, "voiceover.mp3", "final_video.mp4")
     print("Video assembled!")
-    
+
     print("Step 6: Generating metadata...")
     title, description, tags = generate_metadata(topic)
     print(f"Title: {title}")
-    
+
     print("Step 7: Uploading to YouTube...")
     video_id = upload_to_youtube("final_video.mp4", title, description, tags)
     print(f"Success! Video live at: https://youtube.com/watch?v={video_id}")
