@@ -19,8 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install google-generativeai requests edge-tts moviepy google-auth google-auth-oauthlib google-api-python-client asyncio
-
+          pip install google-genai requests edge-tts moviepy google-auth google-auth-oauthlib google-api-python-client
       - name: Run automation script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
