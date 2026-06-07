@@ -71,14 +71,15 @@ def assemble_video(footage_files, audio_file, output_file):
     duration_per_clip = total_duration / len(footage_files)
     for footage in footage_files:
         clip = VideoFileClip(footage)
-        clip = clip.subclipped(0, min(duration_per_clip, clip.duration))
+        clip_duration = min(duration_per_clip, clip.duration)
+        clip = clip.subclipped(0, clip_duration)
         clip = clip.resized((1920, 1080))
         clips.append(clip)
     final_video = concatenate_videoclips(clips, method="compose")
-    final_video = final_video.subclipped(0, total_duration)
+    if final_video.duration > total_duration:
+        final_video = final_video.subclipped(0, total_duration)
     final_video = final_video.with_audio(audio)
     final_video.write_videofile(output_file, fps=24, codec='libx264', audio_codec='aac')
-
 # Step 6 - Generate metadata
 def generate_metadata(topic):
     response = client.chat.completions.create(
