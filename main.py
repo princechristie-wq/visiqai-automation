@@ -97,13 +97,21 @@ def generate_metadata(topic):
 
 # Step 7 - Upload to YouTube
 def upload_to_youtube(video_file, title, description, tags):
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    
     credentials = Credentials(
         token=None,
         refresh_token=YOUTUBE_REFRESH_TOKEN,
         client_id=YOUTUBE_CLIENT_ID,
         client_secret=YOUTUBE_CLIENT_SECRET,
-        token_uri='https://oauth2.googleapis.com/token'
+        token_uri='https://oauth2.googleapis.com/token',
+        scopes=['https://www.googleapis.com/auth/youtube.upload']
     )
+    
+    # Force refresh the token
+    credentials.refresh(Request())
+    
     youtube = build('youtube', 'v3', credentials=credentials)
     request = youtube.videos().insert(
         part='snippet,status',
@@ -123,7 +131,6 @@ def upload_to_youtube(video_file, title, description, tags):
     response = request.execute()
     print(f"Video uploaded! ID: {response['id']}")
     return response['id']
-
 # Main pipeline
 def main():
     print("Starting Visiq AI automation...")
