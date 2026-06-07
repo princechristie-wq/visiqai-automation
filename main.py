@@ -2,36 +2,43 @@ import os
 import requests
 import asyncio
 import edge_tts
-from google import genai
+from groq import Groq
 from moviepy import VideoFileClip, AudioFileClip, concatenate_videoclips
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 # Configuration
-GEMINI_API_KEY = os.environ['GEMINI_API_KEY']
+GROQ_API_KEY = os.environ['GROQ_API_KEY']
 PEXELS_API_KEY = os.environ['PEXELS_API_KEY']
 YOUTUBE_CLIENT_ID = os.environ['YOUTUBE_CLIENT_ID']
 YOUTUBE_CLIENT_SECRET = os.environ['YOUTUBE_CLIENT_SECRET']
 YOUTUBE_REFRESH_TOKEN = os.environ['YOUTUBE_REFRESH_TOKEN']
 
+# Groq client
+client = Groq(api_key=GROQ_API_KEY)
+
 # Step 1 - Get trending AI topic
 def get_trending_topic():
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    response = client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents="Give me ONE trending AI or technology topic popular in the USA right now in 2026. Return ONLY the topic name, nothing else. Example: ChatGPT Voice Mode"
+    response = client.chat.completions.create(
+        model="llama3-70b-8192",
+        messages=[{
+            "role": "user",
+            "content": "Give me ONE trending AI or technology topic popular in the USA right now in 2026. Return ONLY the topic name, nothing else. Example: ChatGPT Voice Mode"
+        }]
     )
-    return response.text.strip()
+    return response.choices[0].message.content.strip()
 
 # Step 2 - Generate script
 def generate_script(topic):
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    response = client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=f"You are a YouTube scriptwriter for a faceless AI & Technology tutorials channel called Visiq AI, targeting a US audience aged 18-35. Write a 3-minute script about: {topic}. Structure: Hook (10 seconds shocking fact), Problem (30 seconds), Tutorial (2 minutes step by step), CTA (20 seconds subscribe). Keep language simple and conversational. Return ONLY the script text."
+    response = client.chat.completions.create(
+        model="llama3-70b-8192",
+        messages=[{
+            "role": "user",
+            "content": f"You are a YouTube scriptwriter for a faceless AI & Technology tutorials channel called Visiq AI, targeting a US audience aged 18-35. Write a 3-minute script about: {topic}. Structure: Hook (10 seconds shocking fact), Problem (30 seconds), Tutorial (2 minutes step by step), CTA (20 seconds subscribe). Keep language simple and conversational. Return ONLY the script text."
+        }]
     )
-    return response.text.strip()
+    return response.choices[0].message.content.strip()
 
 # Step 3 - Generate voiceover
 async def generate_voiceover(script, output_file):
@@ -74,12 +81,14 @@ def assemble_video(footage_files, audio_file, output_file):
 
 # Step 6 - Generate metadata
 def generate_metadata(topic):
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    response = client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=f"Generate YouTube metadata for a video about {topic} for the channel Visiq AI. Return in this exact format:\nTITLE: (catchy title under 60 chars)\nDESCRIPTION: (150 word description with keywords)\nTAGS: (10 comma separated tags)"
+    response = client.chat.completions.create(
+        model="llama3-70b-8192",
+        messages=[{
+            "role": "user",
+            "content": f"Generate YouTube metadata for a video about {topic} for the channel Visiq AI. Return in this exact format:\nTITLE: (catchy title under 60 chars)\nDESCRIPTION: (150 word description with keywords)\nTAGS: (10 comma separated tags)"
+        }]
     )
-    lines = response.text.strip().split('\n')
+    lines = response.choices[0].message.content.strip().split('\n')
     title = lines[0].replace('TITLE:', '').strip()
     description = lines[1].replace('DESCRIPTION:', '').strip()
     tags = lines[2].replace('TAGS:', '').strip().split(',')
