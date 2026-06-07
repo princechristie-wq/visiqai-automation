@@ -21,7 +21,7 @@ client = Groq(api_key=GROQ_API_KEY)
 # Step 1 - Get trending AI topic
 def get_trending_topic():
     response = client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{
             "role": "user",
             "content": "Give me ONE trending AI or technology topic popular in the USA right now in 2026. Return ONLY the topic name, nothing else. Example: ChatGPT Voice Mode"
@@ -32,7 +32,7 @@ def get_trending_topic():
 # Step 2 - Generate script
 def generate_script(topic):
     response = client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{
             "role": "user",
             "content": f"You are a YouTube scriptwriter for a faceless AI & Technology tutorials channel called Visiq AI, targeting a US audience aged 18-35. Write a 3-minute script about: {topic}. Structure: Hook (10 seconds shocking fact), Problem (30 seconds), Tutorial (2 minutes step by step), CTA (20 seconds subscribe). Keep language simple and conversational. Return ONLY the script text."
@@ -82,7 +82,7 @@ def assemble_video(footage_files, audio_file, output_file):
 # Step 6 - Generate metadata
 def generate_metadata(topic):
     response = client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{
             "role": "user",
             "content": f"Generate YouTube metadata for a video about {topic} for the channel Visiq AI. Return in this exact format:\nTITLE: (catchy title under 60 chars)\nDESCRIPTION: (150 word description with keywords)\nTAGS: (10 comma separated tags)"
